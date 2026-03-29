@@ -1,0 +1,175 @@
+services:
+
+    esdb:
+        image: eventstore/eventstore:24.2.0-jammy
+        # use this image if you're running ARM-based processor like an Apple M1
+        # image: eventstore/eventstore:24.2.0-alpha-arm64v8
+        container_name: ecomm_esdb
+        ports:
+            - '2113:2113'
+            - '1113:1113'
+        environment:
+            EVENTSTORE_INSECURE: 'true'
+            EVENTSTORE_CLUSTER_SIZE: 1
+            EVENTSTORE_RUN_PROJECTIONS: all
+            EVENTSTORE_START_STANDARD_PROJECTIONS: 'true'
+            EVENTSTORE_ENABLE_ATOM_PUB_OVER_HTTP: 'true'
+#            EVENTSTORE__PLUGINS__CONNECTORS__ENABLED: 'true' # only enabled in EE
+        command:
+          [
+              "--ExtIp=0.0.0.0", # Have ESDB listen on all ports not just localhost
+#              "--insecure",
+#              "--run-projections=All",
+#              "--enable-atom-pub-over-http",
+#              "--start-standard-projections"
+          ]
+        networks:
+            - esdb_net
+
+    zipkin:
+        image: openzipkin/zipkin
+        container_name: ecomm_zipkin
+        ports:
+            - "9411:9411"
+
+    prometheus:
+        container_name: ecomm_prometheus
+        image: prom/prometheus:v2.17.1
+        ports:
+            - "9090:9090"
+        volumes:
+            - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+
+    grafana:
+        container_name: ecomm_grafana
+        image: grafana/grafana:6.7.2
+        ports:
+            - "3000:3000"
+        volumes:
+            - ./grafana/datasources.yml:/etc/grafana/provisioning/datasources/prometheus.yaml
+            - ./grafana/dashboards:/dashboards
+
+    seq:
+        image: datalust/seq:latest
+        container_name: ecomm_seq
+        environment:
+            - ACCEPT_EULA=Y
+        ports:
+            - "5341:80"
+
+    sqlserver:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        container_name: ecomm_sqlserver
+        ports:
+            - "1433:1433"
+        environment:
+            - ACCEPT_EULA=Y
+            - MSSQL_SA_PASSWORD=myStrong_Password123#
+            - MSSQL_PID=Developer
+        networks:
+            - sql_net
+
+    postgres:
+        image: postgres:latest
+        container_name: ecomm_postgres
+        ports:
+            - "5432:5432"
+        environment:
+            - POSTGRES_PASSWORD=Password123!
+        networks:
+            - pg_net
+
+    pgadmin:
+        image: dpage/pgadmin4
+        container_name: ecomm_pgadmin
+        environment:
+            PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-admin@pgadmin.org}
+            PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-admin}
+        ports:
+            - "${PGADMIN_PORT:-5050}:80"
+        networks:
+            - pg_net
+
+    mongo:
+        container_name: ecomm_mongo
+        image: mongo
+        ports:
+            - '27017:27017'
+        environment:
+            MONGO_INITDB_ROOT_USERNAME: mongoadmin
+            MONGO_INITDB_ROOT_PASSWORD: secret
+
+    rabbitmq:
+        container_name: rabbitmq
+        image: rabbitmq:3.13-management-alpine
+        ports:
+            - 5672:5672
+            - 15672:15672
+        networks:
+            - rmq_net
+
+#    catalog.api:
+#        image: catalog.api
+#        container_name: ecomm_catalog_api
+#        ports:
+#            - "5253:80"
+#        build:
+#            context: .
+#            dockerfile: src/Catalog/Catalog.Api/Dockerfile
+
+#    inventory.api:
+#        image: inventory.api
+#        container_name: ecomm_inventory_api
+#        ports:
+#            - "5155:80"
+#        build:
+#            context: .
+#            dockerfile: src/Inventory/Inventory.Api/Dockerfile
+
+#    prices.api:
+#        image: prices.api
+#        container_name: ecomm_prices_api
+#        ports:
+#            - "5219:80"
+#        build:
+#            context: .
+#            dockerfile: src/Pricing/Prices.Api/Dockerfile
+
+#    discounts.api:
+#        image: discounts.api
+#        container_name: ecomm_discounts_api
+#        ports:
+#            - "5221:80"
+#        build:
+#            context: .
+#            dockerfile: src/Pricing/Discounts.Api/Dockerfile
+
+#    shoppingcart.api:
+#        image: shoppingcart.api
+#        container_name: ecomm_shoppingcart_api
+#        ports:
+#            - "5263:80"
+#        build:
+#            context: .
+#            dockerfile: src/Retail/ShoppingCart.Api/Dockerfile
+
+#    legacy.api:
+#        image: legacy.api
+#        container_name: ecomm_legacy_api
+#        ports:
+#            - "5255:80"
+#        build:
+#            context: .
+#            dockerfile: src/Legacy/Legacy.Api/Dockerfile
+
+networks:
+    default:
+        name: network
+    esdb_net:
+        driver: bridge
+    sql_net:
+        driver: bridge
+    pg_net:
+        driver: bridge
+    rmq_net:
+        driver: bridge

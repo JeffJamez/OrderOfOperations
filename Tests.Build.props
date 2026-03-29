@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project>
+    <PropertyGroup>
+        <VSTestLogger>trx%3bLogFileName=$(MSBuildProjectName).trx</VSTestLogger>
+        <VSTestResultsDirectory>$(MSBuildProjectDirectory)/bin/TestResults/$(TargetFramework)</VSTestResultsDirectory>
+        <NoWarn>0649</NoWarn>
+    </PropertyGroup>
+</Project>
